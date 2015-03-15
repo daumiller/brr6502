@@ -1,5 +1,6 @@
 CC= clang
-COPTS= -std=c99 -I.
+COPTS= -std=c99 -Wall -I.
+CLIBS= -lpthread
 OBJECTS= obj/common.o obj/signal.o obj/operation.o obj/cpu.o
 
 all : objects
