@@ -57,7 +57,7 @@ void cpu_shutdown(CPU *cpu) {
 }
 
 void _cpu_reset_shutdown(CPU *cpu, bool reset) {
-  if(cpu->_halted) {
+  if(cpu->_halted && cpu->_running) {
     pthread_mutex_lock    (&(cpu->_unhalt_mutex));
     pthread_cond_broadcast(&(cpu->_unhalt_condition));
     pthread_mutex_unlock  (&(cpu->_unhalt_mutex));
