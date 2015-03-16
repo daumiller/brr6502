@@ -1,8 +1,8 @@
 #include "cpu/internal.h"
 
 //==================================================================
-extern OpCode      *op_code_table;
-extern AddressMode *address_mode_table;
+extern OpCode      op_code_table[256];
+extern AddressMode address_mode_table[256];
 
 //==================================================================
 static void  _cpu_reset_shutdown(CPU *cpu, bool reset);
@@ -71,6 +71,7 @@ void _cpu_reset_shutdown(CPU *cpu, bool reset) {
 
 void *_cpu_cycle_thread(void *cpu_ptr) {
   CPU *cpu = (CPU *)cpu_ptr;
+  cpu->_running = true;
 
   Operation op;
   cpu->pc = _cpu_read_vector(cpu, VECTOR_RESET);
