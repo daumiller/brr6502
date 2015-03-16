@@ -32,6 +32,7 @@ int main(int argc, char **argv) {
       printf("  '?'      this help message\n");
       printf("  's'      step single operation\n");
       printf("  'd'      dump operation, registers, and flags\n");
+      printf("  'ds'     dump operation, registers, and flags, then step\n");
       printf("  'r'      dump registers\n");
       printf("  'f'      dump flags\n");
       printf("  'o'      dump operation\n");
@@ -51,6 +52,10 @@ int main(int argc, char **argv) {
       test_system_dump_operation();
       test_system_dump_regs();
       test_system_dump_flags();
+      if(buff[1] == 's') {
+        test_system_step_exit();
+        test_system_step_enter();
+      }
       continue;
     }
 
@@ -76,7 +81,8 @@ int main(int argc, char **argv) {
     }
 
     if(buff[0] == 'm') {
-      int result = scanf("m:%x", &dump_reader);
+      //if(buff[1] != ':') { printf("Bad memory command format (\"m:XXXX\").\n"); continue; }
+      int result = sscanf(buff, "m:%x", &dump_reader);
       if(result < 1) {
         printf("Error reading memory address. Bad format?\n");
       } else {

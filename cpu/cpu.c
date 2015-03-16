@@ -205,7 +205,7 @@ void _cpu_fetch_operation(CPU *cpu, Operation *op) {
   jmp_RELATIVE:
     op->value = bus_read(cpu->pc);
     cpu->pc++;
-    op->address = cpu->pc + op->value;
+    op->address = cpu->pc + u8_as_i8(op->value);
     return;
 
   jmp_STACK:
@@ -276,9 +276,7 @@ static void inline _op_write_operand(CPU *cpu, Operation *op, u8 value) {
 }
 
 static void inline _op_branch_if_status(CPU *cpu, Operation *op, u8 status, u8 value) {
-  u8 operand = _op_read_operand(cpu, op);
-  i16 displacement = u8_as_i16(operand);
-  if((cpu->p & status) == value) { cpu->pc = (u16)((i32)cpu->pc + (i32)displacement); }
+  if((cpu->p & status) == value) { cpu->pc = op->address; }
 }
 
 #define STATUS_CHECK_CARRY(x)      status_change(STATUS_CARRY    , x > 0x00FF)
@@ -395,9 +393,7 @@ void _cpu_execute_operation(CPU *cpu, Operation *op) {
 
   jmp_BRA: {
     // Branch Always / unconditional branch
-    u8 operand = _op_read_operand(cpu, op);
-    i16 displacement = u8_as_i16(operand);
-    cpu->pc = (u16)((i32)cpu->pc + (i32)displacement);
+    cpu->pc = op->address;
     return;
   }
 

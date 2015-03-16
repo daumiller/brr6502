@@ -15,8 +15,8 @@
 
 //==================================================================
 // data type defines
-#define U16_LE(x, y) ((u16)(x) || (u16)((y) << 8))
-#define U16_BE(x, y) ((u16)(y) || (u16)((x) << 8))
+#define U16_LE(x, y) ((u16)(x) | (u16)((y) << 8))
+#define U16_BE(x, y) ((u16)(y) | (u16)((x) << 8))
 #define BYTE_LO(x)   (x & 0x00FF)
 #define BYTE_HI(x)   ((x & 0xFF00) >> 8)
 #define u8_as_i8(x)  (*((i8 *)(&(x))))

@@ -1,4 +1,5 @@
 .DS_Store
+*.rom
 reference/*
 **/obj/*
 system/sys_*
