@@ -9,6 +9,6 @@ entryPoint:
 
 vectorTable:
   .dsb ($FFFA - vectorTable), $00
-  .word entryPoint
-  .word entryPoint
-  .word entryPoint
+  .word entryPoint ; NMI   Vector
+  .word entryPoint ; RESET Vector
+  .word entryPoint ; IRQ   Vector

@@ -81,7 +81,6 @@ int main(int argc, char **argv) {
     }
 
     if(buff[0] == 'm') {
-      //if(buff[1] != ':') { printf("Bad memory command format (\"m:XXXX\").\n"); continue; }
       int result = sscanf(buff, "m:%x", &dump_reader);
       if(result < 1) {
         printf("Error reading memory address. Bad format?\n");
