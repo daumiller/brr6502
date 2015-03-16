@@ -18,7 +18,7 @@ typedef enum {
   // SIGNAL_TYPE_VPB      // ~vector_read   | out | not supported
 } SignalType;
 
-typedef void (*SignalCallback)(void *cpu, SignalType signal, Edge edge);
+typedef void (*SignalCallback)(void *cpu_ptr, SignalType signal, Edge edge);
 
 typedef struct st_signal_list {
   SignalCallback signal;

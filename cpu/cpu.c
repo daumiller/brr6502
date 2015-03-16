@@ -5,17 +5,19 @@ extern OpCode      *op_code_table;
 extern AddressMode *address_mode_table;
 
 //==================================================================
-void  _cpu_reset_shutdown(CPU *cpu, bool reset);
-void *_cpu_cycle_thread(void *cpu_ptr);
-void  _cpu_interrupt_prepare(CPU *cpu, bool maskable, bool soft);
-void  _cpu_fetch_operation(CPU *cpu, Operation *op);
-void  _cpu_execute_operation(CPU *cpu, Operation *op);
-u8 _op_read_operand(CPU *cpu, Operation *op);
+static void  _cpu_reset_shutdown(CPU *cpu, bool reset);
+static void *_cpu_cycle_thread(void *cpu_ptr);
+static void  _cpu_interrupt_prepare(CPU *cpu, bool maskable, bool soft);
+static void  _cpu_fetch_operation(CPU *cpu, Operation *op);
+static void  _cpu_execute_operation(CPU *cpu, Operation *op);
+static u8 _op_read_operand(CPU *cpu, Operation *op);
 
 //==================================================================
 
 CPU *cpu_create(BusInterface *bus) {
   CPU *cpu = (CPU *)calloc(sizeof(CPU), 1);
+  cpu->_signal_state = SIGNALS_AT_BOOT;
+  cpu->_bus = bus;
   cpu->_running = false;
   cpu->_waiting = false;
   pthread_mutex_init(&(cpu->_unhalt_mutex)     , NULL);
@@ -250,7 +252,7 @@ void _cpu_fetch_operation(CPU *cpu, Operation *op) {
 
 //==================================================================
 
-u8 inline _op_read_operand(CPU *cpu, Operation *op) {
+static u8 inline _op_read_operand(CPU *cpu, Operation *op) {
   switch(op->mode) {
     case VALUE_MODE_ADDRESS   : return bus_read(op->address);
     case VALUE_MODE_IMMEDIATE : return op->value;
@@ -258,7 +260,7 @@ u8 inline _op_read_operand(CPU *cpu, Operation *op) {
   }
 }
 
-void inline _op_write_operand(CPU *cpu, Operation *op, u8 value) {
+static void inline _op_write_operand(CPU *cpu, Operation *op, u8 value) {
   switch(op->mode) {
     case VALUE_MODE_ADDRESS   : bus_write(op->address, value); return;
     case VALUE_MODE_IMMEDIATE : return; // intentionally ignored
@@ -266,7 +268,7 @@ void inline _op_write_operand(CPU *cpu, Operation *op, u8 value) {
   }
 }
 
-void inline _op_branch_if_status(CPU *cpu, Operation *op, u8 status, u8 value) {
+static void inline _op_branch_if_status(CPU *cpu, Operation *op, u8 status, u8 value) {
   u8 operand = _op_read_operand(cpu, op);
   i16 displacement = u8_as_i16(operand);
   if((cpu->p & status) == value) { cpu->pc = (u16)((i32)cpu->pc + (i32)displacement); }

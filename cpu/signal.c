@@ -8,7 +8,7 @@ void cpu_signal_to_cpu(CPU *cpu, SignalType signal, Edge edge) {
   if(edge == positive) {
     cpu->_signal_state |= signal;
   } else {
-    cpu->_signal_state ^= ~signal;
+    cpu->_signal_state &= ~signal;
   }
 
   // if halted, and RDY transition from low to high, signal CPU to resume running
@@ -80,7 +80,7 @@ void _cpu_signal_from_cpu(CPU *cpu, SignalType signal, Edge edge) {
   }
 
   while(handler) {
-    handler->signal(cpu, signal, edge);
+    handler->signal((void *)cpu, signal, edge);
     handler = handler->next;
   }
 }

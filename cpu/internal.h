@@ -7,6 +7,7 @@
 // status defines
 #define STATUS_UNUSED 32
 #define STATUS_AT_BOOT (STATUS_UNUSED | STATUS_BREAK | STATUS_IRQB)
+#define SIGNALS_AT_BOOT (SIGNAL_TYPE_IRQB | SIGNAL_TYPE_NMIB | SIGNAL_TYPE_RDY)
 
 #define VECTOR_IRQ   0xFFFE
 #define VECTOR_RESET 0xFFFC
@@ -36,7 +37,7 @@
 #define status_change(x, y)      _cpu_status_change(cpu, x, y)
 #define status_is_set(x)         ((cpu->p & x) > 0)
 #define status_is_clear(x)       ((cpu->p & x) == 0)
-#define signal_changed_to(x, y)  ((cpu->_signal_state & x) && ((cpu->_signal_state & x) == y))
+#define signal_changed_to(x, y)  ((cpu->_signal_status & x) && ((cpu->_signal_state & x) == y))
 
 //==================================================================
 // common functions
