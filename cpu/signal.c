@@ -12,7 +12,7 @@ void cpu_signal_to_cpu(CPU *cpu, SignalType signal, Edge edge) {
   }
 
   // if halted, and RDY transition from low to high, signal CPU to resume running
-  if(cpu->_halted && signal_changed_to(SIGNAL_TYPE_RDY, 1)) {
+  if(cpu->_halted && signal_changed_to(SIGNAL_TYPE_RDY, SIGNAL_TYPE_RDY)) {
     pthread_mutex_lock    (&(cpu->_unhalt_mutex));
     pthread_cond_broadcast(&(cpu->_unhalt_condition));
     pthread_mutex_unlock  (&(cpu->_unhalt_mutex));

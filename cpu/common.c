@@ -6,7 +6,7 @@ void _cpu_status_change(CPU *cpu, u8 bit, bool set) {
   if(set) {
     cpu->p |= bit;
   } else {
-    cpu->p ^= ~bit;
+    cpu->p &= ~bit;
   }
 }
 

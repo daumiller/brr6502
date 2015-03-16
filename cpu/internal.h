@@ -31,9 +31,9 @@
 //==================================================================
 // bitwise defines
 #define bit_set(x, y)            x |= y
-#define bit_clear(x, y)          x ^= ~y
+#define bit_clear(x, y)          x &= ~y
 #define status_set(x)            cpu->p |= x
-#define status_clear(x)          cpu->p ^= ~x
+#define status_clear(x)          cpu->p &= ~x
 #define status_change(x, y)      _cpu_status_change(cpu, x, y)
 #define status_is_set(x)         ((cpu->p & x) > 0)
 #define status_is_clear(x)       ((cpu->p & x) == 0)

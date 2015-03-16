@@ -20,6 +20,7 @@ CPU *cpu_create(BusInterface *bus) {
   cpu->_bus = bus;
   cpu->_running = false;
   cpu->_waiting = false;
+  cpu->_halted  = false;
   pthread_mutex_init(&(cpu->_unhalt_mutex)     , NULL);
   pthread_cond_init (&(cpu->_unhalt_condition) , NULL);
   pthread_mutex_init(&(cpu->_waiting_mutex)    , NULL);
@@ -56,6 +57,11 @@ void cpu_shutdown(CPU *cpu) {
 }
 
 void _cpu_reset_shutdown(CPU *cpu, bool reset) {
+  if(cpu->_halted) {
+    pthread_mutex_lock    (&(cpu->_unhalt_mutex));
+    pthread_cond_broadcast(&(cpu->_unhalt_condition));
+    pthread_mutex_unlock  (&(cpu->_unhalt_mutex));
+  }
   if(cpu->_running == true) {
     pthread_mutex_lock(&(cpu->_running_mutex));
     cpu->_running = false;

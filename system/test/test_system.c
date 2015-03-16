@@ -8,8 +8,8 @@ BusInterface test_bus;
 pthread_mutex_t single_step_mutex;
 pthread_cond_t  single_step_condition;
 
-extern OpCode      *op_code_table;
-extern AddressMode *address_mode_table;
+extern OpCode      op_code_table[256];
+extern AddressMode address_mode_table[256];
 
 char *op_code_string[] = {
   "ADC", "AND", "ASL",
