@@ -111,6 +111,11 @@ void _cpu_interrupt_prepare(CPU *cpu, bool maskable, bool soft) {
 
 //==================================================================
 
+static inline u16 _cpu_pc_plus_i8(CPU *cpu, u8 offset) {
+  u16 displacement = u8_as_i16(offset);
+  return (u16)((i32)cpu->pc + (i32)displacement);
+}
+
 void _cpu_fetch_operation(CPU *cpu, Operation *op) {
   _cpu_signal_from_cpu(cpu, SIGNAL_TYPE_SYNC, positive);
   if(signal_changed_to(SIGNAL_TYPE_RDY, 0)) {
@@ -205,7 +210,7 @@ void _cpu_fetch_operation(CPU *cpu, Operation *op) {
   jmp_RELATIVE:
     op->value = bus_read(cpu->pc);
     cpu->pc++;
-    op->address = cpu->pc + u8_as_i8(op->value);
+    op->address = _cpu_pc_plus_i8(cpu, op->value);
     return;
 
   jmp_STACK:
@@ -259,7 +264,7 @@ void _cpu_fetch_operation(CPU *cpu, Operation *op) {
 
 //==================================================================
 
-static u8 inline _op_read_operand(CPU *cpu, Operation *op) {
+static inline u8 _op_read_operand(CPU *cpu, Operation *op) {
   switch(op->mode) {
     case VALUE_MODE_ADDRESS   : return bus_read(op->address);
     case VALUE_MODE_IMMEDIATE : return op->value;
@@ -267,7 +272,7 @@ static u8 inline _op_read_operand(CPU *cpu, Operation *op) {
   }
 }
 
-static void inline _op_write_operand(CPU *cpu, Operation *op, u8 value) {
+static inline void _op_write_operand(CPU *cpu, Operation *op, u8 value) {
   switch(op->mode) {
     case VALUE_MODE_ADDRESS   : bus_write(op->address, value); return;
     case VALUE_MODE_IMMEDIATE : return; // intentionally ignored
@@ -275,7 +280,7 @@ static void inline _op_write_operand(CPU *cpu, Operation *op, u8 value) {
   }
 }
 
-static void inline _op_branch_if_status(CPU *cpu, Operation *op, u8 status, u8 value) {
+static inline void _op_branch_if_status(CPU *cpu, Operation *op, u8 status, u8 value) {
   if((cpu->p & status) == value) { cpu->pc = op->address; }
 }
 
@@ -283,6 +288,8 @@ static void inline _op_branch_if_status(CPU *cpu, Operation *op, u8 status, u8 v
 #define STATUS_CHECK_ZERO(x)       status_change(STATUS_ZERO     , x == 0)
 #define STATUS_CHECK_OVERFLOW(x,y) status_change(STATUS_OVERFLOW , (x & 0x80) != (y & 0x80))
 #define STATUS_CHECK_NEGATIVE(x)   status_change(STATUS_NEGATIVE , (x & 0x80) > 0)
+#define BRANCH_BIT_TEST(x, y) u8 operand = _op_read_operand(cpu, op);  \
+                              if((operand & x) == y) { cpu->pc = _cpu_pc_plus_i8(cpu, op->value); }
 
 void _cpu_execute_operation(CPU *cpu, Operation *op) {
 
@@ -864,229 +871,41 @@ void _cpu_execute_operation(CPU *cpu, Operation *op) {
     return;
   }
 
-  jmp_BBR0: {
-    // Branch if Bit 0 Reset
-    u8 operand = _op_read_operand(cpu, op);
-    i16 displacement = u8_as_i16(op->value);
-    if((operand & 1) == 0) { cpu->pc = (u16)((i32)cpu->pc + (i32)displacement); }
-    return;
-  }
+  jmp_BBR0: { BRANCH_BIT_TEST(  1, 0); return; } // Branch if Bit 0 Reset
+  jmp_BBR1: { BRANCH_BIT_TEST(  2, 0); return; } // Branch if Bit 1 Reset
+  jmp_BBR2: { BRANCH_BIT_TEST(  4, 0); return; } // Branch if Bit 2 Reset
+  jmp_BBR3: { BRANCH_BIT_TEST(  8, 0); return; } // Branch if Bit 3 Reset
+  jmp_BBR4: { BRANCH_BIT_TEST( 16, 0); return; } // Branch if Bit 4 Reset
+  jmp_BBR5: { BRANCH_BIT_TEST( 32, 0); return; } // Branch if Bit 5 Reset
+  jmp_BBR6: { BRANCH_BIT_TEST( 64, 0); return; } // Branch if Bit 6 Reset
+  jmp_BBR7: { BRANCH_BIT_TEST(128, 0); return; } // Branch if Bit 7 Reset
 
-  jmp_BBR1: {
-    // Branch if Bit 1 Reset
-    u8 operand = _op_read_operand(cpu, op);
-    i16 displacement = u8_as_i16(op->value);
-    if((operand & 2) == 0) { cpu->pc = (u16)((i32)cpu->pc + (i32)displacement); }
-    return;
-  }
+  jmp_BBS0: { BRANCH_BIT_TEST(  1,   1); return; } // Branch if Bit 0 Set
+  jmp_BBS1: { BRANCH_BIT_TEST(  2,   2); return; } // Branch if Bit 1 Set
+  jmp_BBS2: { BRANCH_BIT_TEST(  4,   4); return; } // Branch if Bit 2 Set
+  jmp_BBS3: { BRANCH_BIT_TEST(  8,   8); return; } // Branch if Bit 3 Set
+  jmp_BBS4: { BRANCH_BIT_TEST( 16,  16); return; } // Branch if Bit 4 Set
+  jmp_BBS5: { BRANCH_BIT_TEST( 32,  32); return; } // Branch if Bit 5 Set
+  jmp_BBS6: { BRANCH_BIT_TEST( 64,  64); return; } // Branch if Bit 6 Set
+  jmp_BBS7: { BRANCH_BIT_TEST(128, 128); return; } // Branch if Bit 7 Set
 
-  jmp_BBR2: {
-    // Branch if Bit 2 Reset
-    u8 operand = _op_read_operand(cpu, op);
-    i16 displacement = u8_as_i16(op->value);
-    if((operand & 4) == 0) { cpu->pc = (u16)((i32)cpu->pc + (i32)displacement); }
-    return;
-  }
+  jmp_RMB0: { _op_write_operand(cpu, op, _op_read_operand(cpu, op) & (  ~1)); return; } // Reset Memory Bit 0
+  jmp_RMB1: { _op_write_operand(cpu, op, _op_read_operand(cpu, op) & (  ~2)); return; } // Reset Memory Bit 1
+  jmp_RMB2: { _op_write_operand(cpu, op, _op_read_operand(cpu, op) & (  ~4)); return; } // Reset Memory Bit 2
+  jmp_RMB3: { _op_write_operand(cpu, op, _op_read_operand(cpu, op) & (  ~8)); return; } // Reset Memory Bit 3
+  jmp_RMB4: { _op_write_operand(cpu, op, _op_read_operand(cpu, op) & ( ~16)); return; } // Reset Memory Bit 4
+  jmp_RMB5: { _op_write_operand(cpu, op, _op_read_operand(cpu, op) & ( ~32)); return; } // Reset Memory Bit 5
+  jmp_RMB6: { _op_write_operand(cpu, op, _op_read_operand(cpu, op) & ( ~64)); return; } // Reset Memory Bit 6
+  jmp_RMB7: { _op_write_operand(cpu, op, _op_read_operand(cpu, op) & (~128)); return; } // Reset Memory Bit 7
 
-  jmp_BBR3: {
-    // Branch if Bit 3 Reset
-    u8 operand = _op_read_operand(cpu, op);
-    i16 displacement = u8_as_i16(op->value);
-    if((operand & 8) == 0) { cpu->pc = (u16)((i32)cpu->pc + (i32)displacement); }
-    return;
-  }
-
-  jmp_BBR4: {
-    // Branch if Bit 4 Reset
-    u8 operand = _op_read_operand(cpu, op);
-    i16 displacement = u8_as_i16(op->value);
-    if((operand & 16) == 0) { cpu->pc = (u16)((i32)cpu->pc + (i32)displacement); }
-    return;
-  }
-
-  jmp_BBR5: {
-    // Branch if Bit 5 Reset
-    u8 operand = _op_read_operand(cpu, op);
-    i16 displacement = u8_as_i16(op->value);
-    if((operand & 32) == 0) { cpu->pc = (u16)((i32)cpu->pc + (i32)displacement); }
-    return;
-  }
-
-  jmp_BBR6: {
-    // Branch if Bit 6 Reset
-    u8 operand = _op_read_operand(cpu, op);
-    i16 displacement = u8_as_i16(op->value);
-    if((operand & 64) == 0) { cpu->pc = (u16)((i32)cpu->pc + (i32)displacement); }
-    return;
-  }
-
-  jmp_BBR7: {
-    // Branch if Bit 7 Reset
-    u8 operand = _op_read_operand(cpu, op);
-    i16 displacement = u8_as_i16(op->value);
-    if((operand & 128) == 0) { cpu->pc = (u16)((i32)cpu->pc + (i32)displacement); }
-    return;
-  }
-
-  jmp_BBS0: {
-    // Branch if Bit 0 Set
-    u8 operand = _op_read_operand(cpu, op);
-    i16 displacement = u8_as_i16(op->value);
-    if(operand & 1) { cpu->pc = (u16)((i32)cpu->pc + (i32)displacement); }
-    return;
-  }
-
-  jmp_BBS1: {
-    // Branch if Bit 1 Set
-    u8 operand = _op_read_operand(cpu, op);
-    i16 displacement = u8_as_i16(op->value);
-    if(operand & 2) { cpu->pc = (u16)((i32)cpu->pc + (i32)displacement); }
-    return;
-  }
-
-  jmp_BBS2: {
-    // Branch if Bit 2 Set
-    u8 operand = _op_read_operand(cpu, op);
-    i16 displacement = u8_as_i16(op->value);
-    if(operand & 4) { cpu->pc = (u16)((i32)cpu->pc + (i32)displacement); }
-    return;
-  }
-
-  jmp_BBS3: {
-    // Branch if Bit 3 Set
-    u8 operand = _op_read_operand(cpu, op);
-    i16 displacement = u8_as_i16(op->value);
-    if(operand & 8) { cpu->pc = (u16)((i32)cpu->pc + (i32)displacement); }
-    return;
-  }
-
-  jmp_BBS4: {
-    // Branch if Bit 4 Set
-    u8 operand = _op_read_operand(cpu, op);
-    i16 displacement = u8_as_i16(op->value);
-    if(operand & 16) { cpu->pc = (u16)((i32)cpu->pc + (i32)displacement); }
-    return;
-  }
-
-  jmp_BBS5: {
-    // Branch if Bit 5 Set
-    u8 operand = _op_read_operand(cpu, op);
-    i16 displacement = u8_as_i16(op->value);
-    if(operand & 32) { cpu->pc = (u16)((i32)cpu->pc + (i32)displacement); }
-    return;
-  }
-
-  jmp_BBS6: {
-    // Branch if Bit 6 Set
-    u8 operand = _op_read_operand(cpu, op);
-    i16 displacement = u8_as_i16(op->value);
-    if(operand & 64) { cpu->pc = (u16)((i32)cpu->pc + (i32)displacement); }
-    return;
-  }
-
-  jmp_BBS7: {
-    // Branch if Bit 7 Set
-    u8 operand = _op_read_operand(cpu, op);
-    i16 displacement = u8_as_i16(op->value);
-    if(operand & 128) { cpu->pc = (u16)((i32)cpu->pc + (i32)displacement); }
-    return;
-  }
-
-  jmp_RMB0: {
-    // Reset Memory Bit 0
-    _op_write_operand(cpu, op, _op_read_operand(cpu, op) & (~1));
-    return;
-  }
-
-  jmp_RMB1: {
-    // Reset Memory Bit 1
-    _op_write_operand(cpu, op, _op_read_operand(cpu, op) & (~2));
-    return;
-  }
-
-  jmp_RMB2: {
-    // Reset Memory Bit 2
-    _op_write_operand(cpu, op, _op_read_operand(cpu, op) & (~4));
-    return;
-  }
-
-  jmp_RMB3: {
-    // Reset Memory Bit 3
-    _op_write_operand(cpu, op, _op_read_operand(cpu, op) & (~8));
-    return;
-  }
-
-  jmp_RMB4: {
-    // Reset Memory Bit 4
-    _op_write_operand(cpu, op, _op_read_operand(cpu, op) & (~16));
-    return;
-  }
-
-  jmp_RMB5: {
-    // Reset Memory Bit 5
-    _op_write_operand(cpu, op, _op_read_operand(cpu, op) & (~32));
-    return;
-  }
-
-  jmp_RMB6: {
-    // Reset Memory Bit 6
-    _op_write_operand(cpu, op, _op_read_operand(cpu, op) & (~64));
-    return;
-  }
-
-  jmp_RMB7: {
-    // Reset Memory Bit 7
-    _op_write_operand(cpu, op, _op_read_operand(cpu, op) & (~128));
-    return;
-  }
-
-  jmp_SMB0: {
-    // Set Memory Bit 0
-    _op_write_operand(cpu, op, _op_read_operand(cpu, op) | 1);
-    return;
-  }
-
-  jmp_SMB1: {
-    // Set Memory Bit 1
-    _op_write_operand(cpu, op, _op_read_operand(cpu, op) | 2);
-    return;
-  }
-
-  jmp_SMB2: {
-    // Set Memory Bit 2
-    _op_write_operand(cpu, op, _op_read_operand(cpu, op) | 4);
-    return;
-  }
-
-  jmp_SMB3: {
-    // Set Memory Bit 3
-    _op_write_operand(cpu, op, _op_read_operand(cpu, op) | 8);
-    return;
-  }
-
-  jmp_SMB4: {
-    // Set Memory Bit 4
-    _op_write_operand(cpu, op, _op_read_operand(cpu, op) | 16);
-    return;
-  }
-
-  jmp_SMB5: {
-    // Set Memory Bit 5
-    _op_write_operand(cpu, op, _op_read_operand(cpu, op) | 32);
-    return;
-  }
-
-  jmp_SMB6: {
-    // Set Memory Bit 6
-    _op_write_operand(cpu, op, _op_read_operand(cpu, op) | 64);
-    return;
-  }
-
-  jmp_SMB7: {
-    // Set Memory Bit 7
-    _op_write_operand(cpu, op, _op_read_operand(cpu, op) | 128);
-    return;
-  }
+  jmp_SMB0: { _op_write_operand(cpu, op, _op_read_operand(cpu, op) |   1); return; } // Set Memory Bit 0
+  jmp_SMB1: { _op_write_operand(cpu, op, _op_read_operand(cpu, op) |   2); return; } // Set Memory Bit 1
+  jmp_SMB2: { _op_write_operand(cpu, op, _op_read_operand(cpu, op) |   4); return; } // Set Memory Bit 2
+  jmp_SMB3: { _op_write_operand(cpu, op, _op_read_operand(cpu, op) |   8); return; } // Set Memory Bit 3
+  jmp_SMB4: { _op_write_operand(cpu, op, _op_read_operand(cpu, op) |  16); return; } // Set Memory Bit 4
+  jmp_SMB5: { _op_write_operand(cpu, op, _op_read_operand(cpu, op) |  32); return; } // Set Memory Bit 5
+  jmp_SMB6: { _op_write_operand(cpu, op, _op_read_operand(cpu, op) |  64); return; } // Set Memory Bit 6
+  jmp_SMB7: { _op_write_operand(cpu, op, _op_read_operand(cpu, op) | 128); return; } // Set Memory Bit 7
 
   jmp_xxx: {
     printf("Invalid OpCode for Byte Code %02X\n", op->op);
