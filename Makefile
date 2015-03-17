@@ -3,9 +3,9 @@ COPTS= -std=c99 -Wall -I.
 CLIBS= -lpthread
 OBJECTS= obj/common.o obj/signal.o obj/operation.o obj/cpu.o
 SYSTEMS= system/sys_test
-ROMS=    nop_loop.rom
+ROMS=    nop_loop.rom op_test.rom
 
-all : objects systems
+all : objects systems roms
 
 objects : $(OBJECTS)
 
@@ -19,6 +19,9 @@ obj/%.o : cpu/%.c
 
 nop_loop.rom : system/test/nop_loop.s
 	xa -bt32768 system/test/nop_loop.s -o nop_loop.rom
+
+op_test.rom : system/test/op_test.s
+	xa -bt32768 system/test/op_test.s -o op_test.rom
 
 system/sys_test : $(OBJECTS) system/test/test_system.c system/test/test_main.c
 	mkdir -p system/test/obj

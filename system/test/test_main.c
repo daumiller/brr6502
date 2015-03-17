@@ -6,8 +6,7 @@ void test_system_init(char *rom_file);
 void test_system_shutdown();
 void test_system_step_enter();
 void test_system_step_exit();
-void test_system_dump_regs();
-void test_system_dump_flags();
+void test_system_dump_cpu();
 void test_system_dump_operation();
 void test_system_dump_memory(u16 address);
 
@@ -25,52 +24,22 @@ int main(int argc, char **argv) {
   unsigned int dump_reader;
 
   while(true) {
+    test_system_dump_cpu();
     printf("? ");
     fgets(buff, 64, stdin);
 
-    if(buff[0] == '\n' || buff[0] == '?') {
+    if(buff[0] == '?') {
       printf("  '?'      this help message\n");
-      printf("  's'      step single operation\n");
-      printf("  'd'      dump operation, registers, and flags\n");
-      printf("  'ds'     dump operation, registers, and flags, then step\n");
-      printf("  'r'      dump registers\n");
-      printf("  'f'      dump flags\n");
-      printf("  'o'      dump operation\n");
+      printf("  's'      step cpu one operation\n");
       printf("  'm:XXXX' dump 8 bytes from memory location 0xXXXX\n");
       printf("  'n'      dump next 8 bytes from memory\n");
       printf("  'q'      quit\n");
       continue;
     }
 
-    if(buff[0] == 's') {
+    if(buff[0] == '\n' || buff[0] == 's') {
       test_system_step_exit();
       test_system_step_enter();
-      continue;
-    }
-
-    if(buff[0] == 'd') {
-      test_system_dump_operation();
-      test_system_dump_regs();
-      test_system_dump_flags();
-      if(buff[1] == 's') {
-        test_system_step_exit();
-        test_system_step_enter();
-      }
-      continue;
-    }
-
-    if(buff[0] == 'r') {
-      test_system_dump_regs();
-      continue;
-    }
-
-    if(buff[0] == 'f') {
-      test_system_dump_flags();
-      continue;
-    }
-
-    if(buff[0] == 'o') {
-      test_system_dump_operation();
       continue;
     }
 

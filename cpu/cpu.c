@@ -9,6 +9,7 @@ static void  _cpu_reset_shutdown(CPU *cpu, bool reset);
 static void *_cpu_cycle_thread(void *cpu_ptr);
 static void  _cpu_interrupt_prepare(CPU *cpu, bool maskable, bool soft);
 static void  _cpu_fetch_operation(CPU *cpu, Operation *op);
+       void  _cpu_decode_operation(CPU *cpu, Operation *op);  // purposely not static, non-advertised helper
 static void  _cpu_execute_operation(CPU *cpu, Operation *op);
 static u8 _op_read_operand(CPU *cpu, Operation *op);
 
@@ -138,6 +139,10 @@ void _cpu_fetch_operation(CPU *cpu, Operation *op) {
     _cpu_interrupt_prepare(cpu, true, false);
   }
 
+  _cpu_decode_operation(cpu, op);
+}
+
+void _cpu_decode_operation(CPU *cpu, Operation *op) {
   u8 byte0 = bus_read(cpu->pc); cpu->pc++;
   op->op   = op_code_table[byte0];
   op->mode = VALUE_MODE_ADDRESS;
@@ -205,6 +210,7 @@ void _cpu_fetch_operation(CPU *cpu, Operation *op) {
     return;
 
   jmp_IMPLIED:
+    op->mode = VALUE_MODE_IMPLIED;
     return;
 
   jmp_RELATIVE:
@@ -214,7 +220,7 @@ void _cpu_fetch_operation(CPU *cpu, Operation *op) {
     return;
 
   jmp_STACK:
-    // this is really identical to AddressMode.IMPLIED
+    op->mode = VALUE_MODE_IMPLIED;
     return;
 
   jmp_ZERO_PAGE:
@@ -258,7 +264,7 @@ void _cpu_fetch_operation(CPU *cpu, Operation *op) {
     return;
 
   jmp_xxx:
-    printf("Invalid Address Mode for Byte Code %02X\n", byte0);
+    fprintf(stderr, "Invalid Address Mode for Byte Code %02X\n", byte0);
     exit(-1);
 }
 
@@ -269,6 +275,7 @@ static inline u8 _op_read_operand(CPU *cpu, Operation *op) {
     case VALUE_MODE_ADDRESS   : return bus_read(op->address);
     case VALUE_MODE_IMMEDIATE : return op->value;
     case VALUE_MODE_REGISTER  : return *(op->reference);
+    case VALUE_MODE_IMPLIED   : fprintf(stderr, "Attempted to read operand for an implied mode operation.\n"); exit(-1);
   }
 }
 
@@ -277,6 +284,7 @@ static inline void _op_write_operand(CPU *cpu, Operation *op, u8 value) {
     case VALUE_MODE_ADDRESS   : bus_write(op->address, value); return;
     case VALUE_MODE_IMMEDIATE : return; // intentionally ignored
     case VALUE_MODE_REGISTER  : *(op->reference) = value;      return;
+    case VALUE_MODE_IMPLIED   : fprintf(stderr, "Attempted to write operand for an implied mode operation.\n"); exit(-1);
   }
 }
 
@@ -908,7 +916,7 @@ void _cpu_execute_operation(CPU *cpu, Operation *op) {
   jmp_SMB7: { _op_write_operand(cpu, op, _op_read_operand(cpu, op) | 128); return; } // Set Memory Bit 7
 
   jmp_xxx: {
-    printf("Invalid OpCode for Byte Code %02X\n", op->op);
+    fprintf(stderr, "Invalid OpCode for Byte Code %02X\n", op->op);
     exit(-1);
   }
 }

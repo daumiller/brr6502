@@ -47,7 +47,8 @@ typedef enum {
 typedef enum {
   VALUE_MODE_ADDRESS,
   VALUE_MODE_IMMEDIATE,
-  VALUE_MODE_REGISTER
+  VALUE_MODE_REGISTER,
+  VALUE_MODE_IMPLIED
 } ValueMode;
 
 typedef struct {

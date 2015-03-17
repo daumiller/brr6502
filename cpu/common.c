@@ -20,10 +20,10 @@ u16 _cpu_read_vector(CPU *cpu, u16 address) {
 
 void _cpu_stack_push(CPU *cpu, u8 value) {
   bus_write(STACK_BASE | cpu->s, value);
-  cpu->s++;
+  cpu->s--;
 }
 
 u8 _cpu_stack_pull(CPU *cpu) {
-  cpu->s--;
+  cpu->s++;
   return bus_read(STACK_BASE | cpu->s);
 }

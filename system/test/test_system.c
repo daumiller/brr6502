@@ -1,3 +1,4 @@
+#include <string.h>
 #include "include/cpu.h"
 #include "cpu/operation.h"
 
@@ -10,6 +11,8 @@ pthread_cond_t  single_step_condition;
 
 extern OpCode      op_code_table[256];
 extern AddressMode address_mode_table[256];
+
+void _cpu_decode_operation(CPU *cpu, Operation *op); // borrowed from cpu/cpu.c
 
 char *op_code_string[] = {
   "ADC", "AND", "ASL",
@@ -31,7 +34,7 @@ char *op_code_string[] = {
   "BBS0", "BBS1", "BBS2", "BBS3", "BBS4", "BBS5", "BBS6", "BBS7",
   "RMB0", "RMB1", "RMB2", "RMB3", "RMB4", "RMB5", "RMB6", "RMB7",
   "SMB0", "SMB1", "SMB2", "SMB3", "SMB4", "SMB5", "SMB6", "SMB7",
-  "invalid"
+  "invl"
 };
 
 char *address_mode_string[] = {
@@ -137,22 +140,62 @@ void test_system_step_exit() {
   cpu_signal_to_cpu((CPU *)test_cpu, SIGNAL_TYPE_RDY, positive);
 }
 
-void test_system_dump_regs() {
-  printf("A: %02X,  X: %02X,  Y: %02X,  P: %02X,  S: %02X,  PC: %04X\n",
-         test_cpu->a, test_cpu->x, test_cpu->y, test_cpu->p, test_cpu->s, test_cpu->pc);
+void test_system_value_string(CPU *cpu, Operation *op, char *buffer) {
+  switch(op->mode) {
+    case VALUE_MODE_IMPLIED:
+      sprintf(buffer, "implied  ");
+      return;
+
+    case VALUE_MODE_ADDRESS:
+      sprintf(buffer, "%02X (%04X)", test_bus_read(op->address), op->address);
+      return;
+
+    case VALUE_MODE_IMMEDIATE:
+      sprintf(buffer, "%02X       ", op->value);
+      return;
+
+    case VALUE_MODE_REGISTER:
+      sprintf(buffer, "%02X (", *(op->reference));
+      if(op->reference == &(cpu->a)) { printf("A)   "); }
+      else if(op->reference == &(cpu->x)) { printf("X)   "); }
+      else if(op->reference == &(cpu->y)) { printf("Y)   "); }
+      else if(op->reference == &(cpu->s)) { printf("S)   "); }
+      else if(op->reference == &(cpu->p)) { printf("P)   "); }
+      else { printf("?)   "); }
+      return;
+  }
 }
 
-void test_system_dump_flags() {
-  printf("N: %d,  V: %d,  B: %d,  D: %d,  I: %d,  Z: %d,  C: %d\n",
-       (test_cpu->p & STATUS_N) > 0, (test_cpu->p & STATUS_V) > 0, (test_cpu->p & STATUS_B) > 0, (test_cpu->p & STATUS_D) > 0,
-       (test_cpu->p & STATUS_I) > 0, (test_cpu->p & STATUS_Z) > 0, (test_cpu->p & STATUS_C) > 0);
-}
+void test_system_dump_cpu() {
+  static CPU dummy;
+  static Operation op;
+  static char value_str[10];
+  static char *mode_str;
+  static u8 opcode;
 
-void test_system_dump_operation() {
-  u8 byte_at_pc = test_bus_read(test_cpu->pc);
-  printf("%s : %s\n",
-    op_code_string[op_code_table[byte_at_pc]],
-    address_mode_string[address_mode_table[byte_at_pc]]);
+  opcode = test_bus_read(test_cpu->pc);
+  dummy.a    = test_cpu->a;
+  dummy.x    = test_cpu->x;
+  dummy.y    = test_cpu->y;
+  dummy.s    = test_cpu->s;
+  dummy.p    = test_cpu->p;
+  dummy.pc   = test_cpu->pc;
+  dummy._bus = test_cpu->_bus;
+  _cpu_decode_operation(&dummy, &op);
+
+  char *op_str = op_code_string[op_code_table[opcode]];
+  char *op_pad = (op_str[3] == 0x00) ? " " : "";
+  test_system_value_string(&dummy, &op, (char *)&value_str);
+  mode_str = address_mode_string[address_mode_table[opcode]];
+
+  //        | XX | XX | XX | XX | XX | XXXX | 11111111 |  OPC+   | XX (XXXX) | 123456789ABCDEF |
+  printf("  | A  | X  | Y  | P  | S  |  PC  | NV-BDIZC | Next Op | Value     | Mode            |\n");
+  printf("  | %02X | %02X | %02X | %02X | %02X | %04X | %d%d-%d%d%d%d%d |   %s%s  | %s | %s",
+         test_cpu->a, test_cpu->x, test_cpu->y, test_cpu->p, test_cpu->s, test_cpu->pc,
+         (test_cpu->p & STATUS_N) > 0, (test_cpu->p & STATUS_V) > 0, (test_cpu->p & STATUS_B) > 0, (test_cpu->p & STATUS_D) > 0,
+         (test_cpu->p & STATUS_I) > 0, (test_cpu->p & STATUS_Z) > 0, (test_cpu->p & STATUS_C) > 0,
+         op_str, op_pad, value_str, mode_str);
+  for(int i=strlen(mode_str); i<15; i++) { printf(" "); } printf(" |\n");
 }
 
 void test_system_dump_memory(u16 address) {
