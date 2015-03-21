@@ -52,7 +52,7 @@ AddressMode address_mode_table[256] = {
    ST, IZPX, xxa, xxa, xxa,  ZP,  ZP,  ZP,  ST, IMM, ACC, xxa, ABS, ABS, ABS, ZPR,  //   4
   REL, IZPY, IZP, xxa, xxa, ZPX, ZPX,  ZP, IMP,  AY,  ST, xxa, xxa,  AX,  AX, ZPR,  //   5
    ST, IZPX, xxa, xxa,  ZP,  ZP,  ZP,  ZP,  ST, IMM, ACC, xxa,  IA, ABS, ABS, ZPR,  //   6
-  REL, IZPY, xxa, IZP, ZPX, ZPX, ZPX,  ZP, IMP,  AY,  ST, xxa, IAX,  AX,  AX, ZPR,  //   7
+  REL, IZPY, IZP, xxa, ZPX, ZPX, ZPX,  ZP, IMP,  AY,  ST, xxa, IAX,  AX,  AX, ZPR,  //   7
   REL, IZPX, xxa, xxa,  ZP,  ZP,  ZP,  ZP, IMP, IMM, IMP, xxa, ABS, ABS, ABS, ZPR,  //   8
   REL, IZPY, IZP, xxa, ZPX, ZPX, ZPY,  ZP, IMP,  AY, IMP, xxa, ABS,  AX,  AX, ZPR,  //   9
   IMM, IZPX, IMM, xxa,  ZP,  ZP,  ZP,  ZP, IMP, IMM, IMP, xxa, ABS, ABS, ABS, ZPR,  //   A

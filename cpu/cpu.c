@@ -171,92 +171,119 @@ void _cpu_decode_operation(CPU *cpu, Operation *op) {
 
   goto *jump_table[address_mode_table[byte0]];
 
-  jmp_ABSOLUTE:
+  jmp_ABSOLUTE: // a
+    // 2 byte address encoded in operation specifies location of data.
+    // LDA $4331 ->  A = *((u8 *)0x4331)
     op->address = bus_read16(cpu->pc);
     cpu->pc += 2;
     return;
 
-  jmp_ABSOLUTE_INDEXED_INDIRECT:
+  jmp_ABSOLUTE_INDEXED_INDIRECT: // (a,x)
+    // Only used with JMP.
+    // 2 byte address encoded with operation is added to X;
+    // 2 bytes read from that address are loaded into PC.
     op->address = bus_read16(cpu->pc) + cpu->x;
     cpu->pc += 2;
     op->address = bus_read16(op->address);
     return;
 
-  jmp_ABSOLUTE_INDEXED_X:
+  jmp_ABSOLUTE_INDEXED_X: // a,x
+    // 2 bytes address encoded with operation is added to X.
     op->address = bus_read16(cpu->pc) + cpu->x;
     cpu->pc += 2;
     return;
 
-  jmp_ABSOLUTE_INDEXED_Y:
+  jmp_ABSOLUTE_INDEXED_Y: // a,y
+    // 2 bytes address encoded with operation is added to X.
     op->address = bus_read16(cpu->pc) + cpu->y;
     cpu->pc += 2;
     return;
 
-  jmp_ABSOLUTE_INDRECT:
+  jmp_ABSOLUTE_INDRECT: // (a)
+    // Only used with JMP.
+    // 2 byte address encoded within operation is read as an address;
+    // from address load another 2 bytes as the final address.
     op->address = bus_read16(cpu->pc);
     cpu->pc += 2;
     op->address = bus_read16(op->address);
     return;
 
-  jmp_ACCUMULATOR:
+  jmp_ACCUMULATOR: // A
+    // Basically an implied mode for not-exclusively-implied operations (bit manip./inc/dec).
     op->reference = &(cpu->a);
     op->mode = VALUE_MODE_REGISTER;
     return;
 
-  jmp_IMMEDIATE:
+  jmp_IMMEDIATE: // #
+    // Single byte value encoded in the operation.
+    // LDA #$FF -> A = #$FF
     op->value = bus_read(cpu->pc);
     cpu->pc++;
     op->mode = VALUE_MODE_IMMEDIATE;
     return;
 
-  jmp_IMPLIED:
+  jmp_IMPLIED: // i
+    // Operands are implied by the instruction (TXA, PHX).
     op->mode = VALUE_MODE_IMPLIED;
     return;
 
-  jmp_RELATIVE:
+  jmp_RELATIVE: // r
+    // Single byte offset from current PC.
+    // BNE #$03 -> BNE PC+#$03
     op->value = bus_read(cpu->pc);
     cpu->pc++;
     op->address = _cpu_pc_plus_i8(cpu, op->value);
     return;
 
-  jmp_STACK:
+  jmp_STACK: // s
+    // Implied stack operations (push/pull/return-from-*).
     op->mode = VALUE_MODE_IMPLIED;
     return;
 
-  jmp_ZERO_PAGE:
+  jmp_ZERO_PAGE: // zp
+    // Single byte absolute addressing. Specifies zero-page pointer.
+    // LDA $33 -> A = *((u8 *)0x0033)
     op->address = (u16)bus_read(cpu->pc);
     cpu->pc++;
     return;
 
-  jmp_ZERO_PAGE_INDEXED_INDIRECT:
+  jmp_ZERO_PAGE_INDEXED_INDIRECT: // (zp,x)
+    // The specified zero-page index is added to x, that zero-page location is used to read a full address.
     op->address = (u16)(bus_read(cpu->pc) + cpu->x);
     cpu->pc++;
     op->address = bus_read16(op->address);
     return;
 
-  jmp_ZERO_PAGE_INDEXED_X:
+  jmp_ZERO_PAGE_INDEXED_X: // zp,x
+    // Encoded zero-page index is added to X to return the final address.
     op->address = (u16)(bus_read(cpu->pc) + cpu->x);
     cpu->pc++;
     return;
 
-  jmp_ZERO_PAGE_INDEXED_Y:
+  jmp_ZERO_PAGE_INDEXED_Y: // zp,y
+    // Encoded zero-page index is added to Y to return the final address.
     op->address = (u16)(bus_read(cpu->pc) + cpu->y);
     cpu->pc++;
     return;
 
-  jmp_ZERO_PAGE_INDIRECT:
+  jmp_ZERO_PAGE_INDIRECT: // (zp)
+    // Encoded zero-page index points to first byte of 2 byte absolute address.
     op->address = (u16)(bus_read(cpu->pc));
     cpu->pc++;
     op->address = bus_read16(op->address);
     return;
 
-  jmp_ZERO_PAGE_INDIRECT_INDEXED_Y:
+  jmp_ZERO_PAGE_INDIRECT_INDEXED_Y: // (zp),y
+    // 2 byte address read from the specified zero-page location is added to Y to form the final address.
     op->address = (u16)(bus_read(cpu->pc));
     cpu->pc++;
     op->address = bus_read16(op->address) + (u16)cpu->y;
     return;
 
-  jmp_ZERO_PAGE_RELATIVE:
+  jmp_ZERO_PAGE_RELATIVE: // zp,r
+    // Only used by BBR/BBS.
+    // First byte specifies a zero-page address to test against;
+    // second byte specifies a relative branch.
     op->address = (u16)(bus_read(cpu->pc));
     cpu->pc++;
     op->value = bus_read(cpu->pc);

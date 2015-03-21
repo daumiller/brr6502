@@ -166,6 +166,14 @@ void test_system_value_string(CPU *cpu, Operation *op, char *buffer) {
   }
 }
 
+bool test_system_on_nop() {
+  return test_bus_read(test_cpu->pc) == 0xEA;
+}
+
+void test_system_dump_header() {
+  printf("  | A  | X  | Y  | P  | S  |  PC  | NV-BDIZC | Next Op | Value     | Mode            |\n");
+}
+
 void test_system_dump_cpu() {
   static CPU dummy;
   static Operation op;
@@ -189,7 +197,7 @@ void test_system_dump_cpu() {
   mode_str = address_mode_string[address_mode_table[opcode]];
 
   //        | XX | XX | XX | XX | XX | XXXX | 11111111 |  OPC+   | XX (XXXX) | 123456789ABCDEF |
-  printf("  | A  | X  | Y  | P  | S  |  PC  | NV-BDIZC | Next Op | Value     | Mode            |\n");
+  //        | A  | X  | Y  | P  | S  |  PC  | NV-BDIZC | Next Op | Value     | Mode            |
   printf("  | %02X | %02X | %02X | %02X | %02X | %04X | %d%d-%d%d%d%d%d |   %s%s  | %s | %s",
          test_cpu->a, test_cpu->x, test_cpu->y, test_cpu->p, test_cpu->s, test_cpu->pc,
          (test_cpu->p & STATUS_N) > 0, (test_cpu->p & STATUS_V) > 0, (test_cpu->p & STATUS_B) > 0, (test_cpu->p & STATUS_D) > 0,
